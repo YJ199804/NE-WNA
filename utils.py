@@ -6,98 +6,6 @@ from torch_geometric.utils.convert import to_networkx
 from scipy.linalg import fractional_matrix_power, inv
 
 
-# Normlization
-def aug_normalized_adjacency(adj):
-    adj = adj + sp.eye(adj.shape[0])
-    adj = sp.coo_matrix(adj)
-    row_sum = np.array(adj.sum(1))
-    d_inv_sqrt = np.power(row_sum, -0.5).flatten()
-    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
-    d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
-    return d_mat_inv_sqrt.dot(adj).dot(d_mat_inv_sqrt).tocoo()
-
-
-def fetch_normalization(type):
-    switcher = {
-        'AugNormAdj': aug_normalized_adjacency,  # A' = (D + I)^-1/2 * ( A + I ) * (D + I)^-1/2
-    }
-    func = switcher.get(type, lambda: "Invalid normalization technique.")
-    return func
-
-
-def row_normalize(mx):
-    """Row-normalize sparse matrix"""
-    rowsum = np.array(mx.sum(1))
-    r_inv = np.power(rowsum, -1).flatten()
-    r_inv[np.isinf(r_inv)] = 0.
-    r_mat_inv = sp.diags(r_inv)
-    mx = r_mat_inv.dot(mx)
-    return mx
-
-
-# Get Enhanced Adjacency Matrix
-def get_Enhanced_Adjacency_Matrix(adj, r):
-    adj = adj.to_dense()
-    adj_label = adj
-    if r == 1:
-        adj_label = adj
-    elif r == 2:
-        adj_label = adj + adj @ adj
-    elif r == 3:
-        adj_label = adj + (adj @ adj) + (adj @ adj @ adj)
-    elif r == 4:
-        adj_label = adj + (adj @ adj) + (adj @ adj @ adj) + (adj @ adj @ adj @ adj)
-    elif r == 5:
-        adj_label = adj + (adj @ adj) + (adj @ adj @ adj) + (adj @ adj @ adj @ adj) + (adj @ adj @ adj @ adj @ adj)
-    elif r == 6:
-        adj_label = adj + (adj @ adj) + (adj @ adj @ adj) + (adj @ adj @ adj @ adj) + (adj @ adj @ adj @ adj @ adj) + (
-                adj @ adj @ adj @ adj @ adj @ adj)
-    elif r == 7:
-        adj_label = adj + (adj @ adj) + (adj @ adj @ adj) + (adj @ adj @ adj @ adj) + (adj @ adj @ adj @ adj @ adj) + (
-                adj @ adj @ adj @ adj @ adj @ adj) + (adj @ adj @ adj @ adj @ adj @ adj @ adj)
-    return adj_label
-
-
-def get_enhanced_Adjacency_Matrix(adj, r):
-    adj = adj.to_dense()
-    adj_label = adj
-    if r == 1:
-        adj_label = adj
-    elif r == 2:
-        adj_label = adj @ adj
-    elif r == 3:
-        adj_label = (adj @ adj @ adj)
-    elif r == 4:
-        adj_label = (adj @ adj @ adj @ adj)
-    elif r == 5:
-        adj_label = (adj @ adj @ adj @ adj @ adj)
-    elif r == 6:
-        adj_label = (adj @ adj @ adj @ adj @ adj @ adj)
-    elif r == 7:
-        adj_label = (adj @ adj @ adj @ adj @ adj @ adj @ adj)
-    return adj_label
-
-# Get Enhanced Adjacency Matrix
-def get_coauthor_amazon_Enhanced_Adjacency_Matrix(adj, r):
-    adj_label = adj
-    if r == 1:
-        adj_label = adj
-    elif r == 2:
-        adj_label = adj + adj @ adj
-    elif r == 3:
-        adj_label = adj + (adj @ adj) + (adj @ adj @ adj)
-    elif r == 4:
-        adj_label = adj + (adj @ adj) + (adj @ adj @ adj) + (adj @ adj @ adj @ adj)
-    elif r == 5:
-        adj_label = adj + (adj @ adj) + (adj @ adj @ adj) + (adj @ adj @ adj @ adj) + (adj @ adj @ adj @ adj @ adj)
-    elif r == 6:
-        adj_label = adj + (adj @ adj) + (adj @ adj @ adj) + (adj @ adj @ adj @ adj) + (adj @ adj @ adj @ adj @ adj) + (
-                adj @ adj @ adj @ adj @ adj @ adj)
-    elif r == 7:
-        adj_label = adj + (adj @ adj) + (adj @ adj @ adj) + (adj @ adj @ adj @ adj) + (adj @ adj @ adj @ adj @ adj) + (
-                adj @ adj @ adj @ adj @ adj @ adj) + (adj @ adj @ adj @ adj @ adj @ adj @ adj)
-    return adj_label
-
 # Get feature similarity Matrix
 def get_feature_dis(x):
     """
@@ -121,15 +29,6 @@ def parse_index_file(filename):
     for line in open(filename):
         index.append(int(line.strip()))
     return index
-
-
-def preprocess_citation(adj, features, normalization="FirstOrderGCN"):
-    adj_normalizer = fetch_normalization(normalization)
-
-    adj = adj_normalizer(adj)
-
-    features = row_normalize(features)
-    return adj, features
 
 
 def sparse_mx_to_torch_sparse_tensor(sparse_mx):
@@ -173,21 +72,11 @@ def Ncontrast(x_dis, adj_label, tau=1):
     return loss
 
 
-def get_A_hat(data):
-    G = to_networkx(data)
-    A = nx.convert_matrix.to_numpy_array(G)
-    I = np.eye(A.shape[0])
-    A_add_self = A + np.eye(A.shape[0])  # A^ = A + I_n
-    dInfo = np.sum(A_add_self, 1)
-    D = np.diag(dInfo)  # D^ = Sigma A^_ii
-    dinv = fractional_matrix_power(D, -0.5)  # D^(-1/2)
-    A_hat = np.matmul(np.matmul(dinv, A), dinv)  # A~ = D^(-1/2) x A^ x D^(-1/2)
-    return A_hat
-
 def index_to_mask(index, size):
     mask = torch.zeros(size, dtype=torch.bool, device=index.device)
     mask[index] = 1
     return mask
+
 
 def random_coauthor_amazon_splits(data, num_classes, lcc_mask):
     # Set random coauthor/co-purchase splits:
@@ -218,3 +107,93 @@ def random_coauthor_amazon_splits(data, num_classes, lcc_mask):
     data.test_mask = index_to_mask(rest_index, size=data.num_nodes)
 
     return data
+
+
+def get_adj_ori(data):
+    G = to_networkx(data)
+    A = nx.convert_matrix.to_numpy_array(G)
+    return A
+
+
+def sparse_to_tuple(sparse_mx, insert_batch=False):
+    """Convert sparse matrix to tuple representation."""
+    """Set insert_batch=True if you want to insert a batch dimension."""
+
+    def to_tuple(mx):
+        if not sp.isspmatrix_coo(mx):
+            mx = mx.tocoo()
+        if insert_batch:
+            coords = np.vstack((np.zeros(mx.row.shape[0]), mx.row, mx.col)).transpose()
+            values = mx.data
+            shape = (1,) + mx.shape
+        else:
+            coords = np.vstack((mx.row, mx.col)).transpose()
+            values = mx.data
+            shape = mx.shape
+        return coords, values, shape
+
+    if isinstance(sparse_mx, list):
+        for i in range(len(sparse_mx)):
+            sparse_mx[i] = to_tuple(sparse_mx[i])
+    else:
+        sparse_mx = to_tuple(sparse_mx)
+
+    return sparse_mx
+
+
+def standardize_data(f, train_mask):
+    """Standardize feature matrix and convert to tuple representation"""
+    # standardize data
+    f = f.todense()
+    mu = f[train_mask == True, :].mean(axis=0)
+    sigma = f[train_mask == True, :].std(axis=0)
+    f = f[:, np.squeeze(np.array(sigma > 0))]
+    mu = f[train_mask == True, :].mean(axis=0)
+    sigma = f[train_mask == True, :].std(axis=0)
+    f = (f - mu) / sigma
+    return f
+
+
+def preprocess_features(features):
+    """Row-normalize feature matrix and convert to tuple representation"""
+    rowsum = np.array(features.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = sp.diags(r_inv)
+    features = r_mat_inv.dot(features)
+    return features.todense(), sparse_to_tuple(features)
+
+
+def normalize_adj(adj):
+    """Symmetrically normalize adjacency matrix."""
+    adj = sp.coo_matrix(adj)
+    rowsum = np.array(adj.sum(1))
+    d_inv_sqrt = np.power(rowsum, -0.5).flatten()
+    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+    d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
+    return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
+
+
+def preprocess_adj(adj):
+    """Preprocessing of adjacency matrix for simple GCN model and conversion to tuple representation."""
+    adj_normalized = normalize_adj(adj + sp.eye(adj.shape[0]))
+    return sparse_to_tuple(adj_normalized)
+
+
+def get_A_hat_k_power(sp_adj, k):
+    sp_adj_k = sp_adj
+    for i in range(k - 1):
+        sp_adj_k = torch.sparse.mm(sp_adj_k, sp_adj)
+    return sp_adj_k
+
+
+def get_ehanced_A_hat_k_power(sp_adj, k):
+    sp_adj_k = sp_adj
+    enhanced_adj = sp_adj
+    adj_arr = []
+    for i in range(k - 1):
+        sp_adj_k = torch.sparse.mm(sp_adj_k, sp_adj)
+        adj_arr.append(sp_adj_k)
+        enhanced_adj = enhanced_adj + adj_arr[i]
+
+    return enhanced_adj

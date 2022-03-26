@@ -13,6 +13,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def train_citation(alpha, beta, tau, batch_size, adj_label, idx_train, features, labels, model, optimizer):
+
     features_batch, adj_label_batch = get_batch(batch_size, adj_label, idx_train, features)
     model.train()
     optimizer.zero_grad()
