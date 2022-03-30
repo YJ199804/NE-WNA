@@ -52,9 +52,9 @@ class AE(nn.Module):
         return x_bar, z
 
 
-class AE_ENC(nn.Module):
+class NE_WNA(nn.Module):
     def __init__(self, nhid, n_z, nfeat, nclass, dropout):
-        super(AE_ENC, self).__init__()
+        super(NE_WNA, self).__init__()
         self.AE = AE(nhid, nfeat, n_z, dropout)
         self.classifier = Linear(n_z, nclass)
 

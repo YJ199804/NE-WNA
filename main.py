@@ -36,7 +36,7 @@ if args.dataset == "cora" or args.dataset == "citeseer" or args.dataset == "pubm
     if args.dataset == "pubmed":
         enhanced_adj = get_A_hat_k_power(sp_A_hat, args.order)
         print("Precompute Finish!")
-        model = AE_ENC(args.hidden, args.hidden_z, features.shape[1], labels.max().item() + 1, args.dropout)
+        model = NE(args.hidden, args.hidden_z, features.shape[1], labels.max().item() + 1, args.dropout)
         print(f'Dataset:{args.dataset}')
         run_citation(model, args.runs, args.epochs, args.lr, args.weight_decay, args.early_stopping, args.alpha,
                      args.beta,
