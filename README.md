@@ -1,4 +1,9 @@
 # NE-WNA
+## Requirements
+Please install pakeages by 
+```javascript 
+pip install -r requirements.txt
+```
 ## Usage Example
 Cora
 ```javascript 
@@ -24,4 +29,7 @@ Coauthor CS
 ```javascript 
 python main.py --dataset cs --runs 10 --epochs 100 --lr 0.01 --weight_decay 0.005 --dropout 0.8 --hidden 2000 --hidden_z 600 --early_stopping 10 --alpha 10 --beta 1 --tau 1.2 --order 2
 ```
-
+## Results
+model	|Cora	|CiteSeer	|PubMed|Amazon Computers	|Amazon Photo	|Coauthor CS
+-------- | -----  |----------- |---|--- | -----  |----------- |---|
+NE-WNA|	82.8% |	74.2%|	82.5%|84.7%|	93.2% |	92.5%|
